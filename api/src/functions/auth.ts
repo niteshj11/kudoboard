@@ -3,19 +3,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { getContainer, getInMemoryStore } from '../lib/database.js';
 import { generateToken, authenticateRequest } from '../lib/auth.js';
 import { User } from '../lib/types.js';
-import { randomBytes, pbkdf2Sync } from 'node:crypto';
+import bcrypt from 'bcryptjs';
 
-// Password hashing using Node.js crypto (PBKDF2)
+// Password hashing using bcryptjs (more portable for serverless)
 function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const hash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
+  const salt = bcrypt.genSaltSync(10);
+  return bcrypt.hashSync(password, salt);
 }
 
 function verifyPassword(password: string, storedHash: string): boolean {
-  const [salt, hash] = storedHash.split(':');
-  const verifyHash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-  return hash === verifyHash;
+  return bcrypt.compareSync(password, storedHash);
 }
 
 // Register endpoint
