@@ -13,6 +13,7 @@
   "dependencies": {
     "@azure/cosmos": "^4.0.0",
     "@azure/functions": "^4.0.0",
+    "@azure/identity": "^4.13.0",
     "@azure/storage-blob": "^12.17.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",

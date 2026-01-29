@@ -8,6 +8,22 @@ interface MessageCardProps {
   isPublicView?: boolean;
 }
 
+// Helper to resolve image URLs - handles both relative paths and full URLs
+const resolveImageUrl = (url: string | undefined): string | undefined => {
+  if (!url) return undefined;
+  
+  // If it's already a full URL (http/https), return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // For relative paths like /uploads/..., prepend the API base URL
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  // Remove /api suffix if present since uploads are served from root
+  const baseUrl = apiUrl.replace(/\/api$/, '');
+  return `${baseUrl}${url}`;
+};
+
 export default function MessageCard({ message }: MessageCardProps) {
   const getCardStyleClasses = () => {
     switch (message.cardStyle) {
@@ -40,7 +56,7 @@ export default function MessageCard({ message }: MessageCardProps) {
         {message.imageUrl && (
           <div className="rounded-lg overflow-hidden -mx-2 -mt-2 mb-3">
             <img 
-              src={message.imageUrl} 
+              src={resolveImageUrl(message.imageUrl)} 
               alt="" 
               className="w-full h-40 object-cover"
               loading="lazy"
@@ -52,7 +68,7 @@ export default function MessageCard({ message }: MessageCardProps) {
         {message.gifUrl && (
           <div className="rounded-lg overflow-hidden -mx-2 -mt-2 mb-3">
             <img 
-              src={message.gifUrl} 
+              src={resolveImageUrl(message.gifUrl)} 
               alt="" 
               className="w-full h-40 object-cover"
               loading="lazy"

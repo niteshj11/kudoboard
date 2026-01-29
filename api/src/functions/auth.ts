@@ -1,9 +1,24 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { getContainer, getInMemoryStore } from '../lib/database.js';
 import { generateToken, authenticateRequest } from '../lib/auth.js';
 import { User } from '../lib/types.js';
+
+// Use require for crypto to ensure it works in Azure Functions runtime
+const crypto = require('crypto');
+
+// Password hashing using Node.js crypto (PBKDF2)
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, storedHash: string): boolean {
+  const [salt, hash] = storedHash.split(':');
+  const verifyHash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return hash === verifyHash;
+}
 
 // Register endpoint
 export async function register(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -41,7 +56,7 @@ export async function register(request: HttpRequest, context: InvocationContext)
       return { status: 409, jsonBody: { message: 'Email already registered' } };
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = hashPassword(password);
     const now = new Date().toISOString();
     const user: User = {
       id: uuidv4(),
@@ -53,6 +68,7 @@ export async function register(request: HttpRequest, context: InvocationContext)
     };
 
     if (container) {
+      // Document already has the partition key (email) as a property
       await container.items.create(user);
     } else {
       getInMemoryStore('users').set(user.id, user);
@@ -68,7 +84,8 @@ export async function register(request: HttpRequest, context: InvocationContext)
     };
   } catch (error) {
     context.error('Registration error:', error);
-    return { status: 500, jsonBody: { message: 'Registration failed' } };
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return { status: 500, jsonBody: { message: 'Registration failed', error: errorMessage } };
   }
 }
 
@@ -104,7 +121,7 @@ export async function login(request: HttpRequest, context: InvocationContext): P
       return { status: 401, jsonBody: { message: 'Invalid email or password' } };
     }
 
-    const isValid = await bcrypt.compare(password, user.passwordHash);
+    const isValid = verifyPassword(password, user.passwordHash);
     if (!isValid) {
       return { status: 401, jsonBody: { message: 'Invalid email or password' } };
     }

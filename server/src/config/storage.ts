@@ -1,6 +1,11 @@
 import { BlobServiceClient, ContainerClient } from '@azure/storage-blob';
+import * as fs from 'fs';
+import * as path from 'path';
 
 let containerClient: ContainerClient | null = null;
+
+// Local uploads directory for development
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 
 export function getStorageClient(): ContainerClient | null {
   if (containerClient) {
@@ -32,6 +37,17 @@ export async function initializeStorage(): Promise<void> {
       access: 'blob' // Public read access for blobs
     });
     console.log('✅ Azure Blob Storage initialized');
+  } else {
+    // Initialize local uploads directory for development
+    initializeLocalStorage();
+  }
+}
+
+function initializeLocalStorage(): void {
+  const imagesDir = path.join(UPLOADS_DIR, 'images');
+  if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+    console.log('✅ Local uploads directory created:', imagesDir);
   }
 }
 
@@ -43,8 +59,26 @@ export async function uploadBlob(
   const client = getStorageClient();
   
   if (!client) {
-    // For development, return a placeholder
-    return `/uploads/${blobName}`;
+    // For development, save to local filesystem
+    try {
+      const filePath = path.join(UPLOADS_DIR, blobName);
+      const dir = path.dirname(filePath);
+      
+      // Ensure directory exists
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      // Save file
+      fs.writeFileSync(filePath, data);
+      console.log('✅ File saved locally:', filePath);
+      
+      // Return URL path that can be served
+      return `/uploads/${blobName}`;
+    } catch (error) {
+      console.error('❌ Failed to save file locally:', error);
+      return null;
+    }
   }
 
   try {

@@ -8,6 +8,22 @@ import { X, Image, Smile, Loader2, Check } from 'lucide-react';
 import GifPicker from './GifPicker';
 import toast from 'react-hot-toast';
 
+// Helper to resolve image URLs - handles both relative paths and full URLs
+const resolveImageUrl = (url: string | undefined): string | undefined => {
+  if (!url) return undefined;
+  
+  // If it's already a full URL (http/https), return as-is
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  
+  // For relative paths like /uploads/..., prepend the API base URL
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  // Remove /api suffix if present since uploads are served from root
+  const baseUrl = apiUrl.replace(/\/api$/, '');
+  return `${baseUrl}${url}`;
+};
+
 interface AddMessageModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -70,6 +86,12 @@ export default function AddMessageModal({ isOpen, onClose, boardId }: AddMessage
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be less than 10MB');
+      return;
+    }
+
     // Preview
     const reader = new FileReader();
     reader.onload = (e) => setImagePreview(e.target?.result as string);
@@ -84,8 +106,10 @@ export default function AddMessageModal({ isOpen, onClose, boardId }: AddMessage
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setFormData({ ...formData, imageUrl: response.data.url });
-    } catch {
-      toast.error('Failed to upload image');
+      toast.success('Image uploaded!');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to upload image';
+      toast.error(message);
       setImagePreview(null);
     }
   };
@@ -218,7 +242,7 @@ export default function AddMessageModal({ isOpen, onClose, boardId }: AddMessage
                   {/* GIF preview */}
                   {formData.gifUrl && (
                     <div className="relative">
-                      <img src={formData.gifUrl} alt="" className="w-full h-40 object-cover rounded-xl" />
+                      <img src={resolveImageUrl(formData.gifUrl)} alt="" className="w-full h-40 object-cover rounded-xl" />
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, gifUrl: undefined })}

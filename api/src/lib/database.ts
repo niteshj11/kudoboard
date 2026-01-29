@@ -1,4 +1,5 @@
 import { CosmosClient, Database, Container } from '@azure/cosmos';
+import { DefaultAzureCredential } from '@azure/identity';
 
 let client: CosmosClient | null = null;
 let database: Database | null = null;
@@ -16,12 +17,21 @@ export function getCosmosClient(): CosmosClient | null {
   const endpoint = process.env.COSMOS_ENDPOINT;
   const key = process.env.COSMOS_KEY;
 
-  if (!endpoint || !key) {
-    console.warn('Cosmos DB not configured, using in-memory storage');
+  if (!endpoint) {
+    console.warn('Cosmos DB endpoint not configured, using in-memory storage');
     return null;
   }
 
-  client = new CosmosClient({ endpoint, key });
+  // Use key-based auth if key is provided, otherwise use Managed Identity
+  if (key) {
+    console.log('Using Cosmos DB with key-based authentication');
+    client = new CosmosClient({ endpoint, key });
+  } else {
+    console.log('Using Cosmos DB with Managed Identity (DefaultAzureCredential)');
+    const credential = new DefaultAzureCredential();
+    client = new CosmosClient({ endpoint, aadCredentials: credential });
+  }
+  
   return client;
 }
 

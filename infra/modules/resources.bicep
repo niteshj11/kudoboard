@@ -92,6 +92,7 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' = {
   properties: {
     databaseAccountOfferType: 'Standard'
     enableAutomaticFailover: true
+    disableLocalAuth: false  // Enable key-based auth for local development
     enableMultipleWriteLocations: environment == 'production'
     locations: environment == 'production' ? [
       {

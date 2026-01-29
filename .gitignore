@@ -7,6 +7,7 @@ build/
 .env
 .env.local
 .env.*.local
+local.settings.json
 
 # IDE
 .vscode/*
@@ -28,3 +29,12 @@ coverage/
 
 # Build artifacts
 *.tsbuildinfo
+
+# Deployment artifacts
+*.zip
+deployment.zip
+func-publish-profile.xml
+
+# Local uploads
+server/uploads/
+uploads/
