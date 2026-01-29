@@ -58,8 +58,8 @@ jobs:
       - name: Prepare API for deployment
         run: |
           cd api
-          mkdir -p deploy/src
-          cp -r dist/src/* deploy/src/
+          mkdir -p deploy/dist
+          cp -r dist/src deploy/dist/
           cp package.json deploy/
           cp package-lock.json deploy/ || true
           cp host.json deploy/
