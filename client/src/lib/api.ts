@@ -1,6 +1,30 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import type { DetailedError } from '../components/ErrorDisplay';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
+// Global error handler callback
+let errorDisplayCallback: ((error: DetailedError) => void) | null = null;
+
+export function setErrorDisplayCallback(callback: (error: DetailedError) => void) {
+  errorDisplayCallback = callback;
+}
+
+export function clearErrorDisplayCallback() {
+  errorDisplayCallback = null;
+}
+
+// Check if an error response contains detailed error info
+function isDetailedError(data: unknown): data is DetailedError {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'error' in data &&
+    'timestamp' in data &&
+    'environment' in data
+  );
+}
 
 const api = axios.create({
   baseURL: API_URL,
@@ -18,10 +42,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle auth errors
+// Handle auth errors and detailed dev errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: AxiosError) => {
+    // Handle detailed errors in development
+    if (isDev && error.response?.data && isDetailedError(error.response.data)) {
+      const detailedError = error.response.data;
+      console.error('Detailed API Error:', detailedError);
+      
+      // Show error display if callback is registered
+      if (errorDisplayCallback) {
+        errorDisplayCallback(detailedError);
+      }
+    }
+    
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');

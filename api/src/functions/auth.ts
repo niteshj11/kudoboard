@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getContainer, getInMemoryStore } from '../lib/database.js';
 import { generateToken, authenticateRequest } from '../lib/auth.js';
 import { User } from '../lib/types.js';
+import { createErrorResponse } from '../lib/errorHandler.js';
 import bcrypt from 'bcryptjs';
 
 // Password hashing using bcryptjs (more portable for serverless)
@@ -78,9 +79,7 @@ export async function register(request: HttpRequest, context: InvocationContext)
       headers: { 'Cache-Control': 'no-store' },
     };
   } catch (error) {
-    context.error('Registration error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return { status: 500, jsonBody: { message: 'Registration failed', error: errorMessage } };
+    return createErrorResponse(error, context, 'Registration');
   }
 }
 
@@ -130,8 +129,7 @@ export async function login(request: HttpRequest, context: InvocationContext): P
       headers: { 'Cache-Control': 'no-store' },
     };
   } catch (error) {
-    context.error('Login error:', error);
-    return { status: 500, jsonBody: { message: 'Login failed' } };
+    return createErrorResponse(error, context, 'Login');
   }
 }
 
