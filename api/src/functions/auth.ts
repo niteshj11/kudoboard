@@ -3,20 +3,18 @@ import { v4 as uuidv4 } from 'uuid';
 import { getContainer, getInMemoryStore } from '../lib/database.js';
 import { generateToken, authenticateRequest } from '../lib/auth.js';
 import { User } from '../lib/types.js';
-
-// Use require for crypto to ensure it works in Azure Functions runtime
-const crypto = require('crypto');
+import { randomBytes, pbkdf2Sync } from 'node:crypto';
 
 // Password hashing using Node.js crypto (PBKDF2)
 function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  const salt = randomBytes(16).toString('hex');
+  const hash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
   return `${salt}:${hash}`;
 }
 
 function verifyPassword(password: string, storedHash: string): boolean {
   const [salt, hash] = storedHash.split(':');
-  const verifyHash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  const verifyHash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
   return hash === verifyHash;
 }
 
