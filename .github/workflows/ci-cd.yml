@@ -52,6 +52,15 @@ jobs:
       - name: Build API
         run: cd api && npm run build
 
+      - name: Prepare API for deployment
+        run: |
+          cd api
+          cp package.json dist/
+          cp package-lock.json dist/ || true
+          cp host.json dist/
+          cd dist
+          npm install --production
+
       - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -62,10 +71,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: api-build
-          path: |
-            api/dist
-            api/host.json
-            api/package.json
+          path: api/dist
 
   # ===========================================
   # Deploy to Dev (on develop branch)
