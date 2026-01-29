@@ -6,6 +6,7 @@ import { getUsersContainer } from '../config/database';
 import { generateToken, AuthRequest, authenticateToken } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import { User } from '../types';
+import { sendErrorResponse } from '../utils/errorResponse';
 
 const router = Router();
 
@@ -102,8 +103,7 @@ router.post(
         token
       });
     } catch (error) {
-      console.error('Registration error:', error);
-      res.status(500).json({ message: 'Registration failed' });
+      sendErrorResponse(res, error, 'Registration');
     }
   }
 );
@@ -145,8 +145,7 @@ router.post(
         token
       });
     } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ message: 'Login failed' });
+      sendErrorResponse(res, error, 'Login');
     }
   }
 );
@@ -190,8 +189,7 @@ router.post('/google', async (req: AuthRequest, res: Response) => {
       token
     });
   } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(500).json({ message: 'Authentication failed' });
+    sendErrorResponse(res, error, 'Google authentication');
   }
 });
 

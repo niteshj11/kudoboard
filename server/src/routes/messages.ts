@@ -5,6 +5,7 @@ import { getMessagesContainer, getBoardsContainer } from '../config/database';
 import { optionalAuth, AuthRequest } from '../middleware/auth';
 import { Message, CreateMessageDto, Board } from '../types';
 import { Server } from 'socket.io';
+import { sendErrorResponse } from '../utils/errorResponse';
 
 const router = Router();
 
@@ -35,8 +36,7 @@ router.get('/board/:boardId', async (req: AuthRequest, res: Response) => {
 
     res.json(resources);
   } catch (error) {
-    console.error('Error fetching messages:', error);
-    res.status(500).json({ message: 'Failed to fetch messages' });
+    sendErrorResponse(res, error, 'Fetching messages');
   }
 });
 
@@ -95,8 +95,7 @@ router.post(
 
       res.status(201).json(message);
     } catch (error) {
-      console.error('Error creating message:', error);
-      res.status(500).json({ message: 'Failed to create message' });
+      sendErrorResponse(res, error, 'Creating message');
     }
   }
 );
@@ -160,8 +159,7 @@ router.patch('/:id/position', async (req: AuthRequest, res: Response) => {
 
     res.status(404).json({ message: 'Message not found' });
   } catch (error) {
-    console.error('Error updating message position:', error);
-    res.status(500).json({ message: 'Failed to update message' });
+    sendErrorResponse(res, error, 'Updating message position');
   }
 });
 
@@ -210,8 +208,7 @@ router.put('/:id', optionalAuth, async (req: AuthRequest, res: Response) => {
 
     res.status(404).json({ message: 'Message not found' });
   } catch (error) {
-    console.error('Error updating message:', error);
-    res.status(500).json({ message: 'Failed to update message' });
+    sendErrorResponse(res, error, 'Updating message');
   }
 });
 
@@ -257,8 +254,7 @@ router.delete('/:id', optionalAuth, async (req: AuthRequest, res: Response) => {
 
     res.status(404).json({ message: 'Message not found' });
   } catch (error) {
-    console.error('Error deleting message:', error);
-    res.status(500).json({ message: 'Failed to delete message' });
+    sendErrorResponse(res, error, 'Deleting message');
   }
 });
 

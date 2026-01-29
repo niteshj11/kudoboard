@@ -4,6 +4,7 @@ import { body, validationResult } from 'express-validator';
 import { getBoardsContainer } from '../config/database';
 import { authenticateToken, optionalAuth, AuthRequest } from '../middleware/auth';
 import { Board, CreateBoardDto } from '../types';
+import { sendErrorResponse } from '../utils/errorResponse';
 
 const router = Router();
 
@@ -37,8 +38,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
 
     res.json(resources);
   } catch (error) {
-    console.error('Error fetching boards:', error);
-    res.status(500).json({ message: 'Failed to fetch boards' });
+    sendErrorResponse(res, error, 'Fetching boards');
   }
 });
 
@@ -85,8 +85,7 @@ router.get('/share/:shareCode', optionalAuth, async (req: AuthRequest, res: Resp
     const { password: _, ...publicBoard } = board;
     res.json(publicBoard);
   } catch (error) {
-    console.error('Error fetching board:', error);
-    res.status(500).json({ message: 'Failed to fetch board' });
+    sendErrorResponse(res, error, 'Fetching shared board');
   }
 });
 
@@ -121,8 +120,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response) =>
 
     res.json(board);
   } catch (error) {
-    console.error('Error fetching board:', error);
-    res.status(500).json({ message: 'Failed to fetch board' });
+    sendErrorResponse(res, error, 'Fetching board');
   }
 });
 
@@ -176,8 +174,7 @@ router.post(
 
       res.status(201).json(board);
     } catch (error) {
-      console.error('Error creating board:', error);
-      res.status(500).json({ message: 'Failed to create board' });
+      sendErrorResponse(res, error, 'Creating board');
     }
   }
 );
@@ -222,8 +219,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res: Response) =>
 
     res.status(404).json({ message: 'Board not found' });
   } catch (error) {
-    console.error('Error updating board:', error);
-    res.status(500).json({ message: 'Failed to update board' });
+    sendErrorResponse(res, error, 'Updating board');
   }
 });
 
@@ -249,8 +245,7 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response)
 
     res.status(404).json({ message: 'Board not found' });
   } catch (error) {
-    console.error('Error deleting board:', error);
-    res.status(500).json({ message: 'Failed to delete board' });
+    sendErrorResponse(res, error, 'Deleting board');
   }
 });
 

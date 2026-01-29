@@ -1,4 +1,5 @@
 import { Router, Response, Request } from 'express';
+import { sendErrorResponse } from '../utils/errorResponse';
 
 const router = Router();
 
@@ -28,8 +29,7 @@ router.get('/search', async (req: Request, res: Response) => {
     
     res.json(data);
   } catch (error) {
-    console.error('Giphy API error:', error);
-    res.status(500).json({ message: 'Failed to search GIFs' });
+    sendErrorResponse(res, error, 'Searching GIFs');
   }
 });
 
@@ -50,8 +50,7 @@ router.get('/trending', async (req: Request, res: Response) => {
     
     res.json(data);
   } catch (error) {
-    console.error('Giphy API error:', error);
-    res.status(500).json({ message: 'Failed to fetch trending GIFs' });
+    sendErrorResponse(res, error, 'Fetching trending GIFs');
   }
 });
 

@@ -3,6 +3,7 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadBlob } from '../config/storage';
 import { AuthRequest, optionalAuth } from '../middleware/auth';
+import { sendErrorResponse } from '../utils/errorResponse';
 
 const router = Router();
 
@@ -42,8 +43,7 @@ router.post('/image', optionalAuth, upload.single('image'), async (req: AuthRequ
 
     res.json({ url });
   } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ message: 'Failed to upload image' });
+    sendErrorResponse(res, error, 'Uploading image');
   }
 });
 

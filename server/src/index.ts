@@ -64,6 +64,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Test error endpoint (only in dev)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/test-error', (req, res, next) => {
+    const error = new Error('This is a test error to verify detailed error display');
+    next(error);
+  });
+}
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/boards', boardRoutes);
