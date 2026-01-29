@@ -1,3 +1,14 @@
+// Polyfill crypto.randomUUID for Azure Functions ESM environment
+// This must be done BEFORE importing @azure/cosmos
+import { randomUUID as nodeRandomUUID } from 'node:crypto';
+if (typeof globalThis.crypto === 'undefined') {
+  (globalThis as unknown as { crypto: { randomUUID: () => string } }).crypto = {
+    randomUUID: nodeRandomUUID,
+  };
+} else if (typeof globalThis.crypto.randomUUID === 'undefined') {
+  (globalThis.crypto as unknown as { randomUUID: () => string }).randomUUID = nodeRandomUUID;
+}
+
 import { CosmosClient, Database, Container } from '@azure/cosmos';
 import { DefaultAzureCredential } from '@azure/identity';
 
