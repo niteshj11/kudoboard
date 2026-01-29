@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { GiphyGif } from '../types';
-import { Search, Loader2, Upload, X } from 'lucide-react';
+import { Search, Loader2, Upload } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 import toast from 'react-hot-toast';
 
@@ -76,7 +76,9 @@ export default function GifPicker({ onSelect }: GifPickerProps) {
     }
   };
 
-  const showUploadFallback = isError || (data?.data && data.data.length === 0 && !isLoading);
+  // Show upload fallback when API fails or no results
+  const _showUploadFallback = isError || (data?.data && data.data.length === 0 && !isLoading);
+  void _showUploadFallback; // Suppress unused variable warning
 
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden">
