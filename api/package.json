@@ -2,7 +2,8 @@
   "name": "kudoboard-functions",
   "version": "1.0.0",
   "description": "Kudoboard Serverless API",
-  "main": "dist/src/functions/*.js",
+  "type": "module",
+  "main": "dist/src/functions/index.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",

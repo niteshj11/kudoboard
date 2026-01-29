@@ -33,13 +33,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
-      - name: Install dependencies
-        run: |
-          npm ci
-          cd client && npm ci
-          cd ../api && npm ci
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install client dependencies
+        run: cd client && npm ci
+
+      - name: Install API dependencies
+        run: cd api && npm ci
 
       - name: Lint
         run: cd client && npm run lint || true
@@ -55,11 +57,13 @@ jobs:
       - name: Prepare API for deployment
         run: |
           cd api
-          cp package.json dist/
-          cp package-lock.json dist/ || true
-          cp host.json dist/
-          cd dist
-          npm install --production
+          mkdir -p deploy/src
+          cp -r dist/src/* deploy/src/
+          cp package.json deploy/
+          cp package-lock.json deploy/ || true
+          cp host.json deploy/
+          cd deploy
+          npm ci --production
 
       - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
@@ -71,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: api-build
-          path: api/dist
+          path: api/deploy
 
   # ===========================================
   # Deploy to Dev (on develop branch)
@@ -82,7 +86,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: 
       name: dev
-      url: ${{ steps.deploy-swa.outputs.static_web_app_url }}
     
     steps:
       - uses: actions/checkout@v4
@@ -98,13 +101,6 @@ jobs:
         with:
           name: api-build
           path: api-deploy
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Static Web App
         id: deploy-swa
@@ -133,7 +129,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: 
       name: staging
-      url: ${{ steps.deploy-swa.outputs.static_web_app_url }}
     
     steps:
       - uses: actions/checkout@v4
@@ -149,13 +144,6 @@ jobs:
         with:
           name: api-build
           path: api-deploy
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Static Web App
         id: deploy-swa
@@ -168,11 +156,10 @@ jobs:
           skip_app_build: true
           skip_api_build: true
 
-      - name: Deploy Functions to Staging Slot
+      - name: Deploy Functions
         uses: Azure/functions-action@v1
         with:
-          app-name: func-kudoboard-production
-          slot-name: staging
+          app-name: func-kudoboard-staging
           package: api-deploy
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_STAGING }}
 
@@ -185,7 +172,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: 
       name: production
-      url: ${{ steps.deploy-swa.outputs.static_web_app_url }}
     
     steps:
       - uses: actions/checkout@v4
@@ -202,13 +188,6 @@ jobs:
           name: api-build
           path: api-deploy
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
       - name: Deploy to Static Web App
         id: deploy-swa
         uses: Azure/static-web-apps-deploy@v1
@@ -220,57 +199,12 @@ jobs:
           skip_app_build: true
           skip_api_build: true
 
-      # Blue-Green deployment: Deploy to staging slot first
-      - name: Deploy Functions to Staging Slot
+      - name: Deploy Functions
         uses: Azure/functions-action@v1
         with:
           app-name: func-kudoboard-production
-          slot-name: staging
           package: api-deploy
-          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_STAGING }}
-
-      # Run smoke tests on staging
-      - name: Smoke Test Staging
-        run: |
-          sleep 30
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://func-kudoboard-production-staging.azurewebsites.net/api/health)
-          if [ "$response" != "200" ]; then
-            echo "Smoke test failed with status: $response"
-            exit 1
-          fi
-          echo "Smoke test passed!"
-
-      # Swap staging to production
-      - name: Swap Staging to Production
-        uses: azure/CLI@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az functionapp deployment slot swap \
-              --resource-group rg-kudoboard-production \
-              --name func-kudoboard-production \
-              --slot staging \
-              --target-slot production
-
-      # Deploy to secondary region
-      - name: Deploy Functions to Secondary Region
-        uses: Azure/functions-action@v1
-        with:
-          app-name: func-kudoboard-production-secondary
-          package: api-deploy
-          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_SECONDARY }}
-
-      # Purge Front Door cache
-      - name: Purge CDN Cache
-        uses: azure/CLI@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az afd endpoint purge \
-              --resource-group rg-kudoboard-production \
-              --profile-name fd-kudoboard-production \
-              --endpoint-name ep-kudoboard \
-              --content-paths "/*"
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_PRODUCTION }}
 
   # ===========================================
   # PR Preview Deployment
@@ -281,7 +215,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: preview
-      url: ${{ steps.deploy-swa.outputs.static_web_app_url }}
     
     steps:
       - uses: actions/checkout@v4
@@ -302,30 +235,3 @@ jobs:
           app_location: 'client/dist'
           skip_app_build: true
           skip_api_build: true
-
-      - name: Comment PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🚀 Preview deployed! Check it out: ${{ steps.deploy-swa.outputs.static_web_app_url }}'
-            })
-
-  # ===========================================
-  # Cleanup Preview on PR Close
-  # ===========================================
-  cleanup-preview:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Close Preview
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_DEV }}
-          action: 'close'
