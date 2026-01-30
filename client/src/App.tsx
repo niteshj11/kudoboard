@@ -20,14 +20,12 @@ function App() {
     loadUser()
   }, [loadUser])
 
-  // Register error display callback for dev mode
+  // Register error display callback - always register, server decides when to send detailed errors
   useEffect(() => {
-    if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
-      setErrorDisplayCallback((error) => {
-        setDevError(error)
-      })
-      return () => clearErrorDisplayCallback()
-    }
+    setErrorDisplayCallback((error) => {
+      setDevError(error)
+    })
+    return () => clearErrorDisplayCallback()
   }, [])
 
   return (

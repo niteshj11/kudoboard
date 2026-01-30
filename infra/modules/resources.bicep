@@ -252,12 +252,12 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: cosmosDbAccount.properties.documentEndpoint
         }
         {
-          name: 'COSMOS_KEY'
-          value: cosmosDbAccount.listKeys().primaryMasterKey
-        }
-        {
           name: 'COSMOS_DATABASE'
           value: 'kudoboard'
+        }
+        {
+          name: 'NODE_ENV'
+          value: environment == 'production' ? 'production' : 'development'
         }
         {
           name: 'AZURE_STORAGE_CONNECTION_STRING'
@@ -339,8 +339,8 @@ resource functionAppSecondary 'Microsoft.Web/sites@2023-01-01' = if (environment
           value: cosmosDbAccount.properties.documentEndpoint
         }
         {
-          name: 'COSMOS_KEY'
-          value: cosmosDbAccount.listKeys().primaryMasterKey
+          name: 'NODE_ENV'
+          value: 'staging'
         }
         {
           name: 'APPINSIGHTS_INSTRUMENTATIONKEY'

@@ -2,7 +2,9 @@ import axios, { AxiosError } from 'axios';
 import type { DetailedError } from '../components/ErrorDisplay';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
-const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
+// Show detailed errors if the server sends them (regardless of client build mode)
+// The server decides whether to send detailed errors based on its NODE_ENV
 
 // Global error handler callback
 let errorDisplayCallback: ((error: DetailedError) => void) | null = null;
@@ -46,8 +48,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Handle detailed errors in development
-    if (isDev && error.response?.data && isDetailedError(error.response.data)) {
+    // Handle detailed errors - show if server sends them (server controls when to send)
+    if (error.response?.data && isDetailedError(error.response.data)) {
       const detailedError = error.response.data;
       console.error('Detailed API Error:', detailedError);
       
