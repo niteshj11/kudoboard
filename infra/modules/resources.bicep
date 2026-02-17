@@ -381,7 +381,8 @@ resource frontDoorProfile 'Microsoft.Cdn/profiles@2023-05-01' = {
   location: 'global'
   tags: tags
   sku: {
-    name: environment == 'production' ? 'Premium_AzureFrontDoor' : 'Standard_AzureFrontDoor'
+    // SFI Compliance: Premium SKU required for WAF protection on all environments
+    name: 'Premium_AzureFrontDoor'
   }
 }
 
@@ -535,8 +536,9 @@ resource apiRoute 'Microsoft.Cdn/profiles/afdEndpoints/routes@2023-05-01' = {
   dependsOn: [apiOriginPrimary]
 }
 
-// WAF Policy (Production)
-resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@2022-05-01' = if (environment == 'production') {
+// WAF Policy (All Environments - SFI Compliance)
+// Detection mode for dev/staging, Prevention for production
+resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@2022-05-01' = {
   name: 'waf${appName}${environment}'
   location: 'global'
   tags: tags
@@ -546,7 +548,8 @@ resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@20
   properties: {
     policySettings: {
       enabledState: 'Enabled'
-      mode: 'Prevention'
+      // SFI: Start with Detection mode for non-prod, Prevention for production
+      mode: environment == 'production' ? 'Prevention' : 'Detection'
       requestBodyCheck: 'Enabled'
     }
     managedRules: {
@@ -584,8 +587,8 @@ resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@20
   }
 }
 
-// Security Policy to link WAF
-resource securityPolicy 'Microsoft.Cdn/profiles/securityPolicies@2023-05-01' = if (environment == 'production') {
+// Security Policy to link WAF (All Environments - SFI Compliance)
+resource securityPolicy 'Microsoft.Cdn/profiles/securityPolicies@2023-05-01' = {
   parent: frontDoorProfile
   name: 'sp-waf'
   properties: {
